@@ -1,0 +1,67 @@
+import cv2
+import pyaudio
+import numpy as np
+
+# Initialize cameras
+cap1 = cv2.VideoCapture(0)
+cap2 = cv2.VideoCapture(1)
+cap3 = cv2.VideoCapture(2)
+
+# Initialize face cascade classifier
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+# Initialize microphone input
+audio = pyaudio.PyAudio()
+
+FORMAT = pyaudio.paInt16
+CHANNELS = 1
+RATE = 44100
+CHUNK = 1024
+
+stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+
+def detect_anonymous_voice(audio_data):
+    # Implement audio analysis to detect anonymous voice
+    # Example: Calculate the volume level of audio_data
+    volume_level = np.sqrt(np.mean(np.square(np.frombuffer(audio_data, dtype=np.int16))))  # Calculate root mean square (RMS)
+    
+    # If volume_level surpasses a certain threshold, consider it an anonymous voice
+    if volume_level > 1000:  # Adjust threshold as needed
+        return True
+    return False
+
+while True:
+    # Capture frames from cameras
+    ret1, frame1 = cap1.read()
+    ret2, frame2 = cap2.read()
+    ret3, frame3 = cap3.read()
+
+    # Convert frames to grayscale
+    gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
+    gray2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+    gray3 = cv2.cvtColor(frame3, cv2.COLOR_BGR2GRAY)
+
+    # Detect faces
+    faces1 = face_cascade.detectMultiScale(gray1, scaleFactor=1.1, minNeighbors=5)
+    faces2 = face_cascade.detectMultiScale(gray2, scaleFactor=1.1, minNeighbors=5)
+    faces3 = face_cascade.detectMultiScale(gray3, scaleFactor=1.1, minNeighbors=5)
+
+    # Capture audio data
+    audio_data = stream.read(CHUNK, exception_on_overflow=False)
+
+    # Detect anonymous voice
+    if detect_anonymous_voice(audio_data):
+        # Implement alarm triggering mechanism (e.g., print a message)
+        print("Anonymous voice detected! Triggering alarm...")
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# Release resources
+cap1.release()
+cap2.release()
+cap3.release()
+cv2.destroyAllWindows()
+stream.stop_stream()
+stream.close()
+audio.terminate()
